@@ -9,27 +9,27 @@ import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 class SqlHelper {
   Database? db;
 
-  SqlHelper() {
-    initDb();
+  Future<void> createTables() async {
+    try {
+      await db!.execute("""
+      Create table categories(
+      id integer primary key,
+      name text,
+      description text
+      )""");
+      print('create producst table');
+    } catch (e, s) {
+      print('error in create categories table $e');
+      print('syatck trace $s');
+    }
   }
 
-  void createTables() async {
-    await db!.execute("""
-  Create table if not exists products(
-  id integer primary key,
-  name text not null,
-  description text not null,
-  price real not null,
-  stock integer not null,
-  categoryId integer not null,
-)""");
-  }
-
-  void initDb() async {
+  Future<void> initDb() async {
     try {
       if (kIsWeb) {
         var factory = databaseFactoryFfiWeb;
         db = await factory.openDatabase('pos.db');
+        print('=================== Db Created');
       } else {
         db = await openDatabase(
           'pos.db',

@@ -12,8 +12,16 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(onPressed: () {
+      floatingActionButton: FloatingActionButton(onPressed: () async {
         var sqlHelper = SqlHelper();
+        await sqlHelper.initDb();
+
+        if (sqlHelper.db == null) {
+          print('Error: unable to open database');
+          return;
+        }
+
+        await sqlHelper.createTables();
       }),
     );
   }
