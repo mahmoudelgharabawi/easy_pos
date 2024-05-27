@@ -9,18 +9,43 @@ import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 class SqlHelper {
   Database? db;
 
-  Future<void> createTables() async {
+  Future<bool> createTables() async {
     try {
-      await db!.execute("""
-      Create table categories(
+      var batch = db!.batch();
+
+      batch.execute("""
+      Create table If not exists categories(
       id integer primary key,
       name text,
       description text
       )""");
-      print('create producst table');
-    } catch (e, s) {
-      print('error in create categories table $e');
-      print('syatck trace $s');
+      batch.execute("""
+      Create table If not exists products(
+      id integer primary key,
+      name text,
+      description text,
+      price double,
+      stock integer,
+      isAvaliable boolean,
+      image blob,
+      categoryId integer
+      )""");
+      batch.execute("""
+      Create table If not exists clients(
+      id integer primary key,
+      name text,
+      email text,
+      phone text,
+      address text
+      )""");
+
+      var result = await batch.commit();
+
+      print('tables Created Successfully: $result');
+      return true;
+    } catch (e) {
+      print('error in create tables $e');
+      return false;
     }
   }
 
