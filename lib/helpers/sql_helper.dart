@@ -16,8 +16,8 @@ class SqlHelper {
       batch.execute("""
       Create table If not exists categories(
       id integer primary key,
-      name text,
-      description text
+      name text not null,
+      description text not null
       )""");
       batch.execute("""
       Create table If not exists products(
