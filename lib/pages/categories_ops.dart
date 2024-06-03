@@ -3,6 +3,7 @@ import 'package:easy_pos/models/category.dart';
 import 'package:easy_pos/widgets/app_elevated_button.dart';
 import 'package:easy_pos/widgets/app_text_form_field.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 import 'package:get_it/get_it.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -15,9 +16,18 @@ class CategoriesOpsPage extends StatefulWidget {
 }
 
 class _CategoriesOpsState extends State<CategoriesOpsPage> {
-  var nameTextEditingController = TextEditingController();
-  var describtionTextEditingController = TextEditingController();
+  TextEditingController? nameTextEditingController;
+  TextEditingController? describtionTextEditingController;
   var formKey = GlobalKey<FormState>();
+
+  @override
+  void initState() {
+    nameTextEditingController =
+        TextEditingController(text: widget.category?.name ?? '');
+    describtionTextEditingController =
+        TextEditingController(text: widget.category?.description ?? '');
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -72,25 +82,39 @@ class _CategoriesOpsState extends State<CategoriesOpsPage> {
       if (formKey.currentState!.validate()) {
         var sqlHelper = GetIt.I.get<SqlHelper>();
 
-        //TODO add update logic
-        await sqlHelper.db!.insert(
-            'categories',
-            conflictAlgorithm: ConflictAlgorithm.replace,
-            {
-              'name': nameTextEditingController.text,
-              'description': describtionTextEditingController.text,
-            });
+        if (widget.category == null) {
+          // Add Category Logic
+          await sqlHelper.db!.insert(
+              'categories',
+              conflictAlgorithm: ConflictAlgorithm.replace,
+              {
+                'name': nameTextEditingController?.text,
+                'description': describtionTextEditingController?.text,
+              });
+        } else {
+          // Update Category Logic
+          await sqlHelper.db!.update(
+              'categories',
+              {
+                'name': nameTextEditingController?.text,
+                'description': describtionTextEditingController?.text,
+              },
+              where: 'id =?',
+              whereArgs: [widget.category?.id]);
+        }
 
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             backgroundColor: Colors.green,
             content: Text(
-              'Category added Successfully',
+              widget.category == null
+                  ? 'Category added Successfully'
+                  : 'Category Updated Successfully',
               style: TextStyle(color: Colors.white),
             ),
           ),
         );
-        Navigator.pop(context);
+        Navigator.pop(context, true);
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(

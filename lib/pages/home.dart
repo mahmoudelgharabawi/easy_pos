@@ -1,5 +1,6 @@
 import 'package:easy_pos/helpers/sql_helper.dart';
 import 'package:easy_pos/pages/categories.dart';
+import 'package:easy_pos/pages/products.dart';
 import 'package:easy_pos/widgets/grid_view_item.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
@@ -30,6 +31,12 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      floatingActionButton: FloatingActionButton(onPressed: () async {
+        var sqlHelper = GetIt.I.get<SqlHelper>();
+        var result = await sqlHelper.db!.rawQuery('PRAGMA foreign_keys');
+
+        print(result);
+      }),
       drawer: Container(),
       appBar: AppBar(),
       body: Column(
@@ -105,7 +112,12 @@ class _HomePageState extends State<HomePage> {
                     color: Colors.pink,
                     iconData: Icons.inventory_2,
                     label: 'Products',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => ProductsPage()));
+                    },
                   ),
                   GridViewItem(
                     color: Colors.lightBlue,

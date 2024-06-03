@@ -2,6 +2,7 @@ import 'package:data_table_2/data_table_2.dart';
 import 'package:easy_pos/helpers/sql_helper.dart';
 import 'package:easy_pos/models/category.dart';
 import 'package:easy_pos/pages/categories_ops.dart';
+import 'package:easy_pos/widgets/app_table.dart';
 import 'package:flutter/material.dart';
 import 'package:get_it/get_it.dart';
 
@@ -27,17 +28,18 @@ class _CategoriesPageState extends State<CategoriesPage> {
       var data = await sqlHelper.db!.query('categories');
 
       if (data.isNotEmpty) {
+        categories = [];
         for (var item in data) {
-          categories ??= [];
           categories?.add(Category.fromJson(item));
         }
       } else {
         categories = [];
       }
-      setState(() {});
     } catch (e) {
+      categories = [];
       print('Error in get Categories $e');
     }
+    setState(() {});
   }
 
   @override
@@ -48,59 +50,138 @@ class _CategoriesPageState extends State<CategoriesPage> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: () {
-              Navigator.push(context,
+            onPressed: () async {
+              var result = await Navigator.push(context,
                   MaterialPageRoute(builder: (ctx) => CategoriesOpsPage()));
+
+              if (result ?? false) {
+                getCategories();
+              }
             },
           ),
         ],
       ),
       body: Padding(
         padding: const EdgeInsets.all(20),
-        child: Theme(
-          data: Theme.of(context).copyWith(
-            iconTheme: const IconThemeData(color: Colors.black, size: 26),
-          ),
-          child: PaginatedDataTable2(
-            onPageChanged: (index) {
-              // print
-            },
-            // availableRowsPerPage: const <int>[1],
-            hidePaginator: false,
-            empty: const Center(
-              child: Text('No Data Found'),
+        child: Column(
+          children: [
+            TextField(
+              onChanged: (text) async {
+                if (text == '') {
+                  getCategories();
+                  return;
+                }
+
+                var sqlHelper = await GetIt.I.get<SqlHelper>();
+                var data = await sqlHelper.db!.rawQuery("""
+                Select * from categories 
+                where name like '%$text%' OR description like '%$text%'
+                """);
+                if (data.isNotEmpty) {
+                  categories = [];
+                  for (var item in data) {
+                    categories?.add(Category.fromJson(item));
+                  }
+                } else {
+                  categories = [];
+                }
+                setState(() {});
+              },
+              decoration: InputDecoration(
+                prefixIcon: Icon(Icons.search),
+                enabledBorder: OutlineInputBorder(),
+                border: OutlineInputBorder(),
+                focusedBorder: OutlineInputBorder(
+                  borderSide: BorderSide(color: Theme.of(context).primaryColor),
+                ),
+                labelText: 'Search',
+              ),
             ),
-            minWidth: 600,
-            fit: FlexFit.tight,
-            isHorizontalScrollBarVisible: true,
-            rowsPerPage: 15,
-            horizontalMargin: 20,
-            checkboxHorizontalMargin: 12,
-            columnSpacing: 20,
-            wrapInCard: false,
-            renderEmptyRowsInTheEnd: false,
-            headingTextStyle:
-                const TextStyle(color: Colors.white, fontSize: 18),
-            headingRowColor:
-                MaterialStatePropertyAll(Theme.of(context).primaryColor),
-            border: TableBorder.all(color: Colors.black),
-            columns: const [
-              DataColumn(label: Text('Id')),
-              DataColumn(label: Text('Name')),
-              DataColumn(label: Text('Description')),
-              DataColumn(label: Text('Actions')),
-            ],
-            source: DataSource(categories),
-          ),
+            const SizedBox(
+              height: 20,
+            ),
+            Expanded(
+              child: AppTable(
+                columns: const [
+                  DataColumn(label: Text('Id')),
+                  DataColumn(label: Text('Name')),
+                  DataColumn(label: Text('Description')),
+                  DataColumn(label: Center(child: Text('Actions'))),
+                ],
+                source: CategoriesDataSource(
+                    categories: categories,
+                    onUpdate: (category) async {
+                      var result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (ctx) => CategoriesOpsPage(
+                                    category: category,
+                                  )));
+
+                      if (result ?? false) {
+                        getCategories();
+                      }
+                    },
+                    onDelete: (category) async {
+                      await onDeleteCategory(category);
+                    }),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
+
+  Future<void> onDeleteCategory(Category category) async {
+    try {
+      var dialogResult = await showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Delete Category'),
+              content:
+                  const Text('Are you sure you want to delete this category?'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context, false);
+                  },
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context, true);
+                  },
+                  child: const Text('Delete'),
+                ),
+              ],
+            );
+          });
+
+      if (dialogResult ?? false) {
+        var sqlHelper = GetIt.I.get<SqlHelper>();
+        await sqlHelper.db!
+            .delete('categories', where: 'id =?', whereArgs: [category.id]);
+
+        getCategories();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: Colors.red,
+          content: Text('Error in deleting category ${category.name}')));
+    }
+  }
 }
 
-class DataSource extends DataTableSource {
+class CategoriesDataSource extends DataTableSource {
   List<Category>? categories;
-  DataSource(this.categories);
+  void Function(Category)? onUpdate;
+  void Function(Category)? onDelete;
+  CategoriesDataSource(
+      {required this.categories,
+      required this.onUpdate,
+      required this.onDelete});
   @override
   DataRow? getRow(int index) {
     return DataRow2(cells: [
@@ -112,14 +193,18 @@ class DataSource extends DataTableSource {
         children: [
           IconButton(
             icon: const Icon(Icons.edit),
-            onPressed: () {},
+            onPressed: () {
+              onUpdate!(categories![index]);
+            },
           ),
           IconButton(
             icon: const Icon(
               Icons.delete,
               color: Colors.red,
             ),
-            onPressed: () {},
+            onPressed: () {
+              onDelete!(categories![index]);
+            },
           ),
         ],
       )),
