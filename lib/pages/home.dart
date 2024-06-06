@@ -1,5 +1,7 @@
 import 'package:easy_pos/helpers/sql_helper.dart';
+import 'package:easy_pos/pages/all_sales.dart';
 import 'package:easy_pos/pages/categories.dart';
+import 'package:easy_pos/pages/sale_op.page.dart';
 import 'package:easy_pos/pages/products.dart';
 import 'package:easy_pos/widgets/grid_view_item.dart';
 import 'package:flutter/material.dart';
@@ -31,12 +33,15 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      floatingActionButton: FloatingActionButton(onPressed: () async {
-        var sqlHelper = GetIt.I.get<SqlHelper>();
-        var result = await sqlHelper.db!.rawQuery('PRAGMA foreign_keys');
-
-        print(result);
-      }),
+      // floatingActionButton: FloatingActionButton(onPressed: () async {
+      //   var sqlHelper = GetIt.I.get<SqlHelper>();
+      //   sqlHelper.db!.insert('clients', {
+      //     'name': 'ahmed hassan',
+      //     'email': 'ahmed@email.com',
+      //     'phone': '05587446859',
+      //     'address': 'new giza',
+      //   });
+      // }),
       drawer: Container(),
       appBar: AppBar(),
       body: Column(
@@ -106,7 +111,12 @@ class _HomePageState extends State<HomePage> {
                     color: Colors.orange,
                     iconData: Icons.calculate,
                     label: 'All Sales',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => AllSalesPage()));
+                    },
                   ),
                   GridViewItem(
                     color: Colors.pink,
@@ -129,7 +139,12 @@ class _HomePageState extends State<HomePage> {
                     color: Colors.green,
                     iconData: Icons.point_of_sale,
                     label: 'New Sale',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (context) => SaleOpsPage()));
+                    },
                   ),
                   GridViewItem(
                     color: Colors.yellow,

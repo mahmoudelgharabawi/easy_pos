@@ -70,25 +70,25 @@ class _ProductsPageState extends State<ProductsPage> {
           children: [
             TextField(
               onChanged: (text) async {
-                // if (text == '') {
-                //   getProducts();
-                //   return;
-                // }
+                if (text == '') {
+                  getProducts();
+                  return;
+                }
 
-                // var sqlHelper = await GetIt.I.get<SqlHelper>();
-                // var data = await sqlHelper.db!.rawQuery("""
-                // Select * from categories
-                // where name like '%$text%' OR description like '%$text%'
-                // """);
-                // if (data.isNotEmpty) {
-                //   categories = [];
-                //   for (var item in data) {
-                //     categories?.add(Category.fromJson(item));
-                //   }
-                // } else {
-                //   categories = [];
-                // }
-                // setState(() {});
+                var sqlHelper = await GetIt.I.get<SqlHelper>();
+                var data = await sqlHelper.db!.rawQuery("""
+                Select * from products
+                where name like '%$text%' OR description like '%$text%'
+                """);
+                if (data.isNotEmpty) {
+                  products = [];
+                  for (var item in data) {
+                    products?.add(Product.fromJson(item));
+                  }
+                } else {
+                  products = [];
+                }
+                setState(() {});
               },
               decoration: InputDecoration(
                 prefixIcon: Icon(Icons.search),
@@ -120,14 +120,67 @@ class _ProductsPageState extends State<ProductsPage> {
                 ],
                 source: ProductsDataSource(
                     products: products,
-                    onUpdate: (product) async {},
-                    onDelete: (product) async {}),
+                    onUpdate: (product) async {
+                      var result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                              builder: (ctx) => ProductsOpsPage(
+                                    product: product,
+                                  )));
+
+                      if (result ?? false) {
+                        getProducts();
+                      }
+                    },
+                    onDelete: (product) async {
+                      await onDeleteProduct(product);
+                    }),
               ),
             ),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> onDeleteProduct(Product product) async {
+    try {
+      var dialogResult = await showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Delete Product'),
+              content:
+                  const Text('Are you sure you want to delete this product?'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context, false);
+                  },
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(context, true);
+                  },
+                  child: const Text('Delete'),
+                ),
+              ],
+            );
+          });
+
+      if (dialogResult ?? false) {
+        var sqlHelper = GetIt.I.get<SqlHelper>();
+        await sqlHelper.db!
+            .delete('products', where: 'id =?', whereArgs: [product.id]);
+
+        getProducts();
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: Colors.red,
+          content: Text('Error in deleting category ${product.name}')));
+    }
   }
 }
 

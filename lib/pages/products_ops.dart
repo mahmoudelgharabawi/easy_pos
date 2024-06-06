@@ -195,14 +195,20 @@ class _ProductsOpsPageState extends State<ProductsOpsPage> {
               });
         } else {
           // Update Category Logic
-          // await sqlHelper.db!.update(
-          //     'categories',
-          //     {
-          //       'name': nameTextEditingController?.text,
-          //       'description': describtionTextEditingController?.text,
-          //     },
-          //     where: 'id =?',
-          //     whereArgs: [widget.category?.id]);
+          await sqlHelper.db!.update(
+              'products',
+              {
+                'name': nameTextEditingController?.text,
+                'description': describtionTextEditingController?.text,
+                'price':
+                    double.parse(priceTextEditingController?.text ?? '0.0'),
+                'stock': int.parse(stockTextEditingController?.text ?? '0'),
+                'image': imageTextEditingController?.text,
+                'categoryId': selectedCategoryId,
+                'isAvaliable': isAvailable ?? false,
+              },
+              where: 'id =?',
+              whereArgs: [widget.product?.id]);
         }
 
         ScaffoldMessenger.of(context).showSnackBar(
